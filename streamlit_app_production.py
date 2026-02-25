@@ -314,6 +314,31 @@ def generate_charts(result_df):
 def main():
     st.title("📊 Semantic Proximity Analyzer")
     st.markdown("*Analyze keyword-to-page semantic alignment using AI embeddings*")
+    
+    # Overview
+    with st.expander("ℹ️ How it works", expanded=False):
+        st.markdown("""
+        ### What This Tool Does
+        
+        1. **Takes your priority keywords** (the ones you want to rank for)
+        2. **Finds the best ranking URL** for each keyword in your GSC data
+        3. **Fetches page content** (title, meta, body text)
+        4. **Calculates semantic proximity** using AI embeddings (0-100 score)
+        5. **Generates insights** with modern visualizations and exportable reports
+        
+        ### Required Inputs
+        
+        - **GSC Data (CSV)**: Export from Google Search Console with Query, Page, Clicks, Impressions, Position
+        - **Priority Keywords (Excel/CSV)**: Your strategic keywords list with column named "Mot-clé" or "Keyword"
+        
+        ### Output
+        
+        - Semantic proximity scores (0-100) for each keyword
+        - Quality distribution charts
+        - Top/Bottom performing keywords
+        - CSV & Excel export with full data
+        """)
+    
     st.markdown("---")
     
     # Initialize session state
@@ -322,16 +347,21 @@ def main():
     if 'charts' not in st.session_state:
         st.session_state.charts = {}
     
+    # Instructions
+    st.info("📋 **Required Files:** Upload both your GSC export CSV and your strategic priority keywords file (Excel or CSV)")
+    
     # File uploads
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("1️⃣ GSC Data")
-        gsc_file = st.file_uploader("Choose GSC CSV file", type=['csv'], key='gsc')
+        st.subheader("1️⃣ GSC Data (CSV)")
+        st.caption("Export from Google Search Console with Query, Page, Clicks, Impressions, Position columns")
+        gsc_file = st.file_uploader("Upload GSC CSV", type=['csv'], key='gsc', help="Export your GSC data as CSV with queries and landing pages")
     
     with col2:
-        st.subheader("2️⃣ Priority Keywords")
-        keywords_file = st.file_uploader("Choose Excel or CSV", type=['xlsx', 'xls', 'csv'], key='keywords')
+        st.subheader("2️⃣ Priority Keywords (Excel/CSV) ⭐")
+        st.caption("Your strategic keywords list - the app will find best URLs for each and analyze semantic alignment")
+        keywords_file = st.file_uploader("Upload Keywords File", type=['xlsx', 'xls', 'csv'], key='keywords', help="Excel or CSV file with your priority keywords in 'Mot-clé' or 'Keyword' column")
     
     st.markdown("---")
     
@@ -348,7 +378,16 @@ def main():
                     
                     if not keywords:
                         st.error("❌ Could not extract keywords from file")
+                        st.warning("Make sure your file has a column named 'Mot-clé', 'Keyword', or 'Keywords'")
                         return
+                    
+                    st.success(f"✅ Loaded {len(keywords)} priority keywords from file")
+                    with st.expander("📋 View loaded keywords"):
+                        st.write(", ".join(keywords[:20]))
+                        if len(keywords) > 20:
+                            st.write(f"... and {len(keywords) - 20} more")
+                    
+                    st.info(f"🔍 Now matching {len(keywords)} keywords with GSC data and analyzing semantic proximity...")
                     
                     # Load model
                     model = load_embedding_model()
@@ -398,8 +437,40 @@ def main():
                 
                 except Exception as e:
                     st.error(f"❌ Error: {str(e)}")
+                    import traceback
+                    with st.expander("Show detailed error"):
+                        st.code(traceback.format_exc())
         else:
-            st.warning("⚠️ Please upload both GSC data and keywords file")
+            st.error("⚠️ **Both files are required to run the analysis:**")
+            if not gsc_file:
+                st.write("- ❌ GSC Data CSV is missing")
+            if not keywords_file:
+                st.write("- ❌ **Priority Keywords file is missing** (Excel or CSV with your strategic keywords)")
+            
+            with st.expander("💡 What are Priority Keywords?"):
+                st.markdown("""
+                **Priority Keywords** are your strategic target keywords - the ones you want to rank for.
+                
+                **File Format:**
+                - Excel (.xlsx) or CSV file
+                - Should contain a column named: `Mot-clé`, `Keyword`, or `Keywords`
+                - One keyword per row
+                
+                **Example:**
+                ```
+                Mot-clé
+                interim
+                offre emploi
+                agence interim
+                recherche emploi
+                ```
+                
+                **The app will:**
+                1. Find the best ranking URL in GSC for each keyword
+                2. Fetch the page content
+                3. Calculate semantic proximity score (0-100)
+                4. Generate insights and recommendations
+                """)
     
     st.markdown("---")
     
