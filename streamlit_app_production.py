@@ -66,21 +66,25 @@ def load_keywords_excel(file_path_or_df):
             sheets = xls.sheet_names
             
             for sheet_name in sheets:
-                df = pd.read_excel(file_path_or_df, sheet_name=sheet_name)
+                # Read with skiprows to skip headers - "Mot-clé" header is at row 3
+                df = pd.read_excel(file_path_or_df, sheet_name=sheet_name, skiprows=3)
                 
-                # Find column with keywords (French: "Mot-clé")
+                # Find the keyword column (should contain "Mot" or similar)
                 keyword_col = None
                 for col in df.columns:
-                    if isinstance(col, str) and ('mot' in col.lower() or 'keyword' in col.lower()):
+                    if isinstance(col, str) and ('mot' in col.lower() or 'word' in col.lower()):
                         keyword_col = col
                         break
                 
+                # If not found, try second column (usually index 1)
+                if not keyword_col and len(df.columns) > 1:
+                    keyword_col = df.columns[1]
+                
                 if keyword_col:
-                    # Extract keywords, skip metadata rows
+                    # Extract keywords, skip NaNs and metadata
                     sheet_keywords = df[keyword_col].dropna().astype(str).tolist()
                     keywords.extend([k.strip() for k in sheet_keywords 
-                                   if k.strip() and len(k.strip()) > 1 and not k.strip().isdigit() 
-                                   and not any(c in k.lower() for c in ['#', 'vol.', 'cible', 'intention'])])
+                                   if k.strip() and len(k.strip()) > 2 and not k.strip().isdigit()])
     except Exception as e:
         st.warning(f"Could not parse Excel file: {e}")
     
