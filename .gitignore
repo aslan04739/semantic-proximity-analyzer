@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Streamlit
+.streamlit/secrets.toml
+.streamlit/cache/
+
+# Project
+results/
+outputs/
+temp.xlsx
+*.log
+.DS_Store
+.vscode/
+.idea/
+
+# IDE
+*.swp
+*.swo
+*~
+.venv_dashboard/

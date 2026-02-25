@@ -1,0 +1,16 @@
+flask==2.3.3
+flask-cors==4.0.0
+werkzeug==2.3.7
+pandas==2.2.2
+numpy==1.26.4
+matplotlib==3.8.4
+seaborn==0.13.2
+openpyxl==3.1.2
+beautifulsoup4==4.12.2
+requests==2.31.0
+sentence-transformers==2.2.2
+scikit-learn==1.4.2
+Pillow==10.4.0
+pywebview==4.4.1
+pyobjc-core==10.1
+pyobjc-framework-Cocoa==10.1

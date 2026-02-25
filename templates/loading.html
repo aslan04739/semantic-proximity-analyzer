@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyzing...</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Space Grotesk', sans-serif;
+            background: #ffffff;
+            color: #111111;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            text-align: center;
+            max-width: 500px;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .spinner {
+            border: 3px solid #e7e7e7;
+            border-top: 3px solid #111111;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 30px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Analyzing Your Data</h1>
+        <div class="spinner"></div>
+        <p>Processing semantic similarity...</p>
+        <p id="progress">This may take a moment.</p>
+        
+        <script>
+            const jobId = "{{ job_id }}";
+            const lang = "{{ lang }}";
+            const checkStatus = async () => {
+                const response = await fetch(`/api/status/${jobId}`);
+                const data = await response.json();
+                
+                if (data.status === 'completed') {
+                    window.location.href = `/results/${jobId}?lang=${lang}`;
+                } else if (data.status === 'error') {
+                    document.getElementById('progress').innerHTML = `<span style="color: red;">Error: ${data.error}</span>`;
+                } else {
+                    document.getElementById('progress').textContent = `Progress: ${data.progress}%`;
+                    setTimeout(checkStatus, 1000);
+                }
+            };
+            
+            // Start checking after 1 second
+            setTimeout(checkStatus, 1000);
+        </script>
+    </div>
+</body>
+</html>

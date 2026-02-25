@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ get_text('results_title') }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #ffffff;
+            color: #111111;
+            padding: 40px 20px;
+            direction: {{ 'rtl' if lang == 'ar' else 'ltr' }};
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            margin-bottom: 40px;
+            border-bottom: 1px solid #e7e7e7;
+            padding-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        h2 {
+            font-size: 20px;
+            margin: 40px 0 20px 0;
+            border-top: 1px solid #e7e7e7;
+            padding-top: 20px;
+            font-weight: 600;
+        }
+        
+        .back-button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin-bottom: 20px;
+            background: #e7e7e7;
+            color: #111111;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .back-button:hover {
+            background: #d0d0d0;
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .metric-card {
+            background: #f8f8f8;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e7e7e7;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #111111;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .kpi-note {
+            margin: 0 0 20px 0;
+            padding: 12px 14px;
+            font-size: 12px;
+            color: #444;
+            background: #f8f8f8;
+            border: 1px solid #e7e7e7;
+            border-radius: 8px;
+        }
+        
+        .graph-section {
+            margin: 40px 0;
+        }
+        
+        .graph-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #111111;
+        }
+        
+        .section-subtitle {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+        
+        .graphs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+            align-items: start;
+        }
+        
+        .graph-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #ffffff;
+            min-width: 0;
+            box-shadow: 0 6px 20px rgba(17, 24, 39, 0.06);
+        }
+        
+        .graph-container {
+            padding: 18px;
+            text-align: left;
+        }
+        
+        .graph-img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+        
+        .graph-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 14px 0 6px 0;
+            color: #0f172a;
+            line-height: 1.4;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+        
+        .graph-download {
+            padding: 0 18px 18px 18px;
+        }
+        
+        .download-button {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #111111;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 12px;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s;
+        }
+        
+        .download-button:hover {
+            background: #333333;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            border: 1px solid #e7e7e7;
+            font-size: 13px;
+            table-layout: fixed;
+        }
+        
+        th {
+            background: #f8f8f8;
+            padding: 12px;
+            text-align: {{ 'right' if lang == 'ar' else 'left' }};
+            font-weight: 600;
+            border-bottom: 2px solid #e7e7e7;
+        }
+        
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e7e7e7;
+            vertical-align: top;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+
+        th:nth-child(1), td:nth-child(1) { width: 48px; }
+        th:nth-child(2), td:nth-child(2) { width: 24%; }
+        th:nth-child(3), td:nth-child(3) { width: 38%; }
+        th:nth-child(4), td:nth-child(4) { width: 12%; }
+        th:nth-child(5), td:nth-child(5),
+        th:nth-child(6), td:nth-child(6),
+        th:nth-child(7), td:nth-child(7) { width: 9%; }
+        
+        tr:hover {
+            background: #fafafa;
+        }
+        
+        .table-section {
+            margin-bottom: 40px;
+        }
+        
+        .export-section {
+            margin: 40px 0;
+            padding: 20px;
+            background: #f8f8f8;
+            border-radius: 8px;
+            border: 1px solid #e7e7e7;
+        }
+        
+        .export-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .geo-insights-section {
+            background: #f0f8ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+        
+        .geo-insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .location-card {
+            background: white;
+            border: 1px solid #e7e7e7;
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .location-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: #111111;
+            margin-bottom: 8px;
+        }
+        
+        .location-metric {
+            font-size: 12px;
+            color: #666;
+            margin: 4px 0;
+        }
+        
+        .location-score {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2563eb;
+            margin: 10px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .graphs-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            table {
+                font-size: 12px;
+                table-layout: auto;
+            }
+            
+            th, td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/?lang={{ lang }}" class="back-button">← {{ get_text('back_btn') }}</a>
+        
+        <header>
+            <h1>{{ get_text('results_title') }}</h1>
+            <p class="subtitle">{{ get_text('results_subtitle') }}</p>
+        </header>
+        
+        <!-- Metrics -->
+        <div class="metrics">
+            <div class="metric-card">
+                <div class="metric-value">{{ metrics.avg_score|round(1) }}</div>
+                <div class="metric-label">{{ get_text('avg_score') }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">{{ metrics.keywords_analyzed }}</div>
+                <div class="metric-label">{{ get_text('keywords_analyzed') }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">{{ metrics.avg_clicks|round(1) }}</div>
+                <div class="metric-label">{{ get_text('avg_clicks') }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">{{ metrics.avg_impressions|round(1) }}</div>
+                <div class="metric-label">{{ get_text('avg_impressions') }}</div>
+            </div>
+        </div>
+
+        <p class="kpi-note">{{ get_text('semantic_score_note') }}</p>
+        
+        <!-- Geo-SEO Insights (For Expert Analysis) -->
+        {% if geo_insights and geo_insights.locations %}
+        <div class="geo-insights-section">
+            <h2>🌍 Geographic SEO Insights</h2>
+            <p class="section-subtitle">Multi-market strategy and location-based keyword performance</p>
+            <div class="geo-insights-grid">
+                {% for location, data in geo_insights.locations.items() %}
+                <div class="location-card">
+                    <div class="location-name">{{ location }}</div>
+                    <div class="location-metric">{{ data.keywords }} Keywords</div>
+                    <div class="location-score">{{ data.avg_score }}/100</div>
+                    <div class="location-metric">📊 {{ data.total_clicks }} Clicks</div>
+                    <div class="location-metric">👁️ {{ data.total_impressions }} Impressions</div>
+                    <div class="location-metric">📍 Pos: {{ data.avg_position|round(1) }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Client-Friendly Graphs -->
+        {% if graphs.client %}
+        <div class="graph-section">
+            <h2>📊 Key Insights</h2>
+            <p class="section-subtitle">Simple, actionable insights for decision-making</p>
+            <div class="graphs-grid">
+                {% for graph in graphs.client %}
+                <div class="graph-item">
+                    <div class="graph-container">
+                        <img src="data:image/png;base64,{{ graph.data }}" class="graph-img" alt="{{ graph.name }}">
+                        <div class="graph-title">{{ graph.name }}</div>
+                    </div>
+                    <div class="graph-download">
+                        <button class="download-button" onclick="downloadGraph('{{ graph.name }}', '{{ graph.data }}')">
+                            {{ get_text('download_graph') }}
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Technical Graphs -->
+        {% if graphs.technical %}
+        <div class="graph-section">
+            <h2>🔬 Technical Analysis</h2>
+            <p class="section-subtitle">Detailed metrics for consultants and SEO specialists</p>
+            <div class="graphs-grid">
+                {% for graph in graphs.technical %}
+                <div class="graph-item">
+                    <div class="graph-container">
+                        <img src="data:image/png;base64,{{ graph.data }}" class="graph-img" alt="{{ graph.name }}">
+                        <div class="graph-title">{{ graph.name }}</div>
+                    </div>
+                    <div class="graph-download">
+                        <button class="download-button" onclick="downloadGraph('{{ graph.name }}', '{{ graph.data }}')">
+                            {{ get_text('download_graph') }}
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Detailed Results -->
+        <h2>{{ get_text('detailed_results') }}</h2>
+        
+        <!-- Top Keywords -->
+        <div class="table-section">
+            <h3>{{ get_text('top_keywords') }}</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>{{ get_text('col_keyword') }}</th>
+                        <th>{{ get_text('col_url') }}</th>
+                        <th>{{ get_text('col_score') }}</th>
+                        <th>{{ get_text('col_clicks') }}</th>
+                        <th>{{ get_text('col_impressions') }}</th>
+                        <th>{{ get_text('col_position') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in tables.top_20 %}
+                    <tr>
+                        <td>{{ row[0] }}</td>
+                        <td>{{ row[1] }}</td>
+                        <td>{{ row[2] }}</td>
+                        <td><strong>{{ row[3] }}</strong></td>
+                        <td>{{ row[4] }}</td>
+                        <td>{{ row[5] }}</td>
+                        <td>{{ row[6] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Bottom Keywords -->
+        <div class="table-section">
+            <h3>{{ get_text('bottom_keywords') }}</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>{{ get_text('col_keyword') }}</th>
+                        <th>{{ get_text('col_url') }}</th>
+                        <th>{{ get_text('col_score') }}</th>
+                        <th>{{ get_text('col_clicks') }}</th>
+                        <th>{{ get_text('col_impressions') }}</th>
+                        <th>{{ get_text('col_position') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in tables.bottom_20 %}
+                    <tr>
+                        <td>{{ row[0] }}</td>
+                        <td>{{ row[1] }}</td>
+                        <td>{{ row[2] }}</td>
+                        <td><strong>{{ row[3] }}</strong></td>
+                        <td>{{ row[4] }}</td>
+                        <td>{{ row[5] }}</td>
+                        <td>{{ row[6] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Downloads -->
+        <div class="export-section">
+            <h3>{{ get_text('export_data') }}</h3>
+            <div class="export-buttons">
+                <a href="/download/{{ job_id }}/results.csv" class="download-button">{{ get_text('download_csv') }}</a>
+                <a href="/download/{{ job_id }}/results.xlsx" class="download-button">{{ get_text('download_excel') }}</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function downloadGraph(name, data) {
+            const link = document.createElement('a');
+            link.href = 'data:image/png;base64,' + data;
+            link.download = name.replace(/\s+/g, '_') + '.png';
+            link.click();
+        }
+    </script>
+</body>
+</html>
