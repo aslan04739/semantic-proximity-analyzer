@@ -56,35 +56,101 @@ def load_embedding_model():
         return None
 
 # ============= UTILITY FUNCTIONS =============
-def load_keywords_excel(df):
-    """Extract keywords from Excel sheet"""
+def load_keywords_excel(file_path_or_df):
+    """Extract keywords from Excel/CSV file (handles multi-sheet structures)"""
     keywords = []
-    for col in df.columns:
-        col_lower = str(col).lower()
-        if 'mot' in col_lower or 'keyword' in col_lower or 'clé' in col_lower:
-            keywords.extend(df[col].dropna().astype(str).tolist())
-            break
-    if not keywords:
-        keywords = df.iloc[:, 0].dropna().astype(str).tolist()
-    return [k.strip() for k in keywords if k.strip() and not k.isdigit()]
+    try:
+        # Handle file objects from st.file_uploader
+        if hasattr(file_path_or_df, 'name'):
+            xls = pd.ExcelFile(file_path_or_df)
+            sheets = xls.sheet_names
+            
+            for sheet_name in sheets:
+                df = pd.read_excel(file_path_or_df, sheet_name=sheet_name)
+                
+                # Find column with keywords (French: "Mot-clé")
+                keyword_col = None
+                for col in df.columns:
+                    if isinstance(col, str) and ('mot' in col.lower() or 'keyword' in col.lower()):
+                        keyword_col = col
+                        break
+                
+                if keyword_col:
+                    # Extract keywords, skip metadata rows
+                    sheet_keywords = df[keyword_col].dropna().astype(str).tolist()
+                    keywords.extend([k.strip() for k in sheet_keywords 
+                                   if k.strip() and len(k.strip()) > 1 and not k.strip().isdigit() 
+                                   and not any(c in k.lower() for c in ['#', 'vol.', 'cible', 'intention'])])
+    except Exception as e:
+        st.warning(f"Could not parse Excel file: {e}")
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_keywords = []
+    for k in keywords:
+        if k not in seen:
+            seen.add(k)
+            unique_keywords.append(k)
+    
+    return unique_keywords
+
+def parse_french_number(val):
+    """Convert French formatted numbers to float (e.g., '1 234,5' → 1234.5)"""
+    if pd.isna(val) or val == '':
+        return 0.0
+    val = str(val).strip()
+    # Remove spaces (French thousands separator)
+    val = val.replace(' ', '')
+    # Replace comma with dot (French decimal)
+    val = val.replace(',', '.')
+    try:
+        return float(val)
+    except:
+        return 0.0
 
 def get_best_url_for_keyword(gsc_df, keyword):
-    """Find best ranking URL for keyword in GSC data"""
-    query_cols = ['Query', 'Queries', 'Top queries', 'query']
-    query_col = next((col for col in query_cols if col in gsc_df.columns), None)
+    """Find best ranking URL for keyword in GSC data (with fuzzy matching)"""
+    from difflib import SequenceMatcher
+    
+    # Clean up data first
+    gsc_clean = gsc_df.copy()
+    for col in ['Clicks', 'Impressions', 'Position']:
+        if col in gsc_clean.columns:
+            gsc_clean[col] = gsc_clean[col].apply(parse_french_number)
+    
+    # Find query column
+    query_col = next((col for col in ['Query', 'Queries', 'Top queries', 'query'] 
+                     if col in gsc_clean.columns), None)
     
     if not query_col:
         return None
     
-    matching = gsc_df[gsc_df[query_col].str.contains(keyword, case=False, na=False)]
-    if matching.empty:
+    # Find matching queries using fuzzy matching
+    keyword_lower = keyword.lower().strip()
+    matching_rows = []
+    
+    for idx, row in gsc_clean.iterrows():
+        query_lower = str(row[query_col]).lower().strip()
+        
+        # Check if keyword is contained in query (flexible matching)
+        # Or if query contains most words from keyword
+        keyword_words = keyword_lower.split()
+        query_words = query_lower.split()
+        
+        # Count how many keyword words appear in query
+        word_match = sum(1 for word in keyword_words if word in query_lower)
+        word_match_ratio = word_match / len(keyword_words) if keyword_words else 0
+        
+        # Include if at least 50% of keyword words match or keyword is in query
+        if word_match_ratio >= 0.5 or keyword_lower in query_lower:
+            matching_rows.append(idx)
+    
+    if not matching_rows:
         return None
     
-    matching = matching.copy()
-    for col in ['Clicks', 'Impressions', 'Position']:
-        if col in matching.columns:
-            matching[col] = pd.to_numeric(matching[col], errors='coerce').fillna(0)
+    matching = gsc_clean.loc[matching_rows].copy()
     
+    # Calculate performance score
     matching['Score'] = (
         matching.get('Clicks', 0) * 2 +
         matching.get('Impressions', 0) * 0.5 -
@@ -92,8 +158,10 @@ def get_best_url_for_keyword(gsc_df, keyword):
     )
     
     best_row = matching.loc[matching['Score'].idxmax()]
-    page_cols = ['Landing page', 'Page', 'Landing Page', 'URL', 'Top pages', 'page']
-    page_col = next((col for col in page_cols if col in gsc_df.columns), None)
+    
+    # Find page column
+    page_col = next((col for col in ['Landing page', 'Page', 'Landing Page', 'URL', 'Top pages', 'page'] 
+                    if col in gsc_clean.columns), None)
     
     if not page_col:
         return None
@@ -101,9 +169,9 @@ def get_best_url_for_keyword(gsc_df, keyword):
     url = str(best_row[page_col])
     return {
         'url': url,
-        'clicks': best_row.get('Clicks', 0),
-        'impressions': best_row.get('Impressions', 0),
-        'position': best_row.get('Position', 0),
+        'clicks': int(best_row.get('Clicks', 0)),
+        'impressions': int(best_row.get('Impressions', 0)),
+        'position': float(best_row.get('Position', 0)),
     }
 
 def fetch_page_content(url):
@@ -218,7 +286,7 @@ def generate_charts(result_df):
     fig, ax = plt.subplots(figsize=(10.5, 5), constrained_layout=True)
     ax.hist(result_df['Proximity_Score'], bins=20, color='#1d4ed8', edgecolor='white', alpha=0.9)
     ax.set_title('Score Distribution')
-    ax.set_xlabel('Pure Semantic Score')
+    ax.set_xlabel('Semantic Proximity Score')
     ax.set_ylabel('Keyword Count')
     ax.grid(axis='y')
     charts['distribution'] = fig
@@ -229,7 +297,7 @@ def generate_charts(result_df):
         scatter = ax.scatter(result_df['Proximity_Score'], result_df['Clicks'],
                            s=80, c=result_df['Proximity_Score'], cmap='viridis', alpha=0.7, edgecolors='white')
         ax.set_title('Clicks vs Semantic Score')
-        ax.set_xlabel('Pure Semantic Score')
+        ax.set_xlabel('Semantic Proximity Score')
         ax.set_ylabel('Clicks')
         ax.grid()
         cbar = plt.colorbar(scatter, ax=ax)
@@ -269,14 +337,10 @@ def main():
             with st.spinner("🔄 Analyzing... (this may take a minute)"):
                 try:
                     # Load files
-                    gsc_df = pd.read_csv(gsc_file)
+                    gsc_df = pd.read_csv(gsc_file, dtype={'Clicks': str, 'Impressions': str, 'Position': str})
                     
-                    if keywords_file.name.endswith('.csv'):
-                        keywords_df = pd.read_csv(keywords_file)
-                    else:
-                        keywords_df = pd.read_excel(keywords_file)
-                    
-                    keywords = load_keywords_excel(keywords_df)
+                    # Load keywords from file (handles Excel and CSV)
+                    keywords = load_keywords_excel(keywords_file)
                     
                     if not keywords:
                         st.error("❌ Could not extract keywords from file")
@@ -309,10 +373,10 @@ def main():
                         results.append({
                             'Keyword': keyword,
                             'URL': url_info['url'],
-                            'Pure Semantic Score': proximity,
+                            'Proximity_Score': proximity,
                             'Clicks': int(url_info['clicks']),
                             'Impressions': int(url_info['impressions']),
-                            'Position': int(url_info['position']) if url_info['position'] > 0 else '-',
+                            'Position': round(url_info['position'], 1),
                         })
                         
                         progress_bar.progress((i + 1) / len(keywords))
@@ -344,7 +408,7 @@ def main():
         # Metrics
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Average Score", f"{result_df['Pure Semantic Score'].mean():.1f}")
+            st.metric("Average Score", f"{result_df['Proximity_Score'].mean():.1f}")
         with col2:
             st.metric("Keywords Analyzed", len(result_df))
         with col3:
@@ -376,11 +440,11 @@ def main():
         tab1, tab2 = st.tabs(["Top 20 (Best Aligned)", "Bottom 20 (Needs Work)"])
         
         with tab1:
-            top_20 = result_df.nlargest(20, 'Pure Semantic Score')
+            top_20 = result_df.nlargest(20, 'Proximity_Score')
             st.dataframe(top_20, use_container_width=True, hide_index=True)
         
         with tab2:
-            bottom_20 = result_df.nsmallest(20, 'Pure Semantic Score')
+            bottom_20 = result_df.nsmallest(20, 'Proximity_Score')
             st.dataframe(bottom_20, use_container_width=True, hide_index=True)
         
         st.markdown("---")
@@ -409,11 +473,11 @@ def main():
                 'Metric': ['Total Keywords', 'Avg Score', 'Excellent (80+)', 'Good (60-80)', 'Fair (40-60)', 'Poor (<40)'],
                 'Value': [
                     len(result_df),
-                    f"{result_df['Pure Semantic Score'].mean():.1f}",
-                    (result_df['Pure Semantic Score'] >= 80).sum(),
-                    ((result_df['Pure Semantic Score'] >= 60) & (result_df['Pure Semantic Score'] < 80)).sum(),
-                    ((result_df['Pure Semantic Score'] >= 40) & (result_df['Pure Semantic Score'] < 60)).sum(),
-                    (result_df['Pure Semantic Score'] < 40).sum(),
+                    f"{result_df['Proximity_Score'].mean():.1f}",
+                    (result_df['Proximity_Score'] >= 80).sum(),
+                    ((result_df['Proximity_Score'] >= 60) & (result_df['Proximity_Score'] < 80)).sum(),
+                    ((result_df['Proximity_Score'] >= 40) & (result_df['Proximity_Score'] < 60)).sum(),
+                    (result_df['Proximity_Score'] < 40).sum(),
                 ]
             })
             summary.to_excel(buffer, sheet_name='Summary', index=False)
