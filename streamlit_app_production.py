@@ -245,11 +245,12 @@ def get_best_url_for_keyword(prepared_gsc_df, keyword, query_col, page_col, matc
 def fetch_page_content(url):
     """Fetch page title, meta, and content"""
     try:
-        if not url.startswith('http'):
-            url = 'https://' + url
+        request_url = url
+        if not request_url.startswith('http'):
+            request_url = 'https://' + request_url
         
         headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
-        response = requests.get(url, headers=headers, timeout=8, allow_redirects=True)
+        response = requests.get(request_url, headers=headers, timeout=8, allow_redirects=True)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.content, 'html.parser')
@@ -264,7 +265,7 @@ def fetch_page_content(url):
         body = soup.find('body')
         text = ' '.join([p.get_text() for p in body.find_all('p')])[:500] if body else ""
         
-        parsed = urlparse(url)
+        parsed = urlparse(request_url)
         url_text = (parsed.netloc + parsed.path)[:100]
         
         return {
@@ -272,10 +273,10 @@ def fetch_page_content(url):
             'meta_description': meta_desc,
             'content': text,
             'url_text': url_text,
-            'full_url': url,
-        }
-    except:
-        return None
+            'full_url': request_url,
+        }, None
+    except Exception as e:
+        return None, f"{type(e).__name__}: {str(e)}"
 
 def calculate_semantic_proximity(keyword, page_data, model):
     """Calculate semantic score using embeddings"""
@@ -490,6 +491,7 @@ def main():
                     unmatched_keywords = []
                     matched_keywords_count = 0
                     fetch_failures = 0
+                    fetch_failure_details = []
                     effective_mode = matching_mode
 
                     for attempt_index, attempt_mode in enumerate(mode_attempts):
@@ -503,6 +505,7 @@ def main():
                         unmatched_keywords = []
                         matched_keywords_count = 0
                         fetch_failures = 0
+                        fetch_failure_details = []
 
                         for i, keyword in enumerate(keywords):
                             status_text.text(
@@ -522,9 +525,15 @@ def main():
 
                             matched_keywords_count += 1
 
-                            page_data = fetch_page_content(url_info['url'])
+                            page_data, fetch_error = fetch_page_content(url_info['url'])
                             if not page_data:
                                 fetch_failures += 1
+                                fetch_failure_details.append({
+                                    'Keyword': keyword,
+                                    'Matched_Query': url_info.get('query', ''),
+                                    'URL': url_info.get('url', ''),
+                                    'Fetch_Error': fetch_error or 'Unknown error',
+                                })
                                 page_data = {
                                     'title': url_info.get('query', ''),
                                     'meta_description': '',
@@ -568,6 +577,12 @@ def main():
                                 f"⚠️ {fetch_failures} matched URLs could not be fetched live. "
                                 "Fallback semantic inputs were used (query + URL text)."
                             )
+                            with st.expander("🔎 Fetch failures details"):
+                                st.dataframe(
+                                    pd.DataFrame(fetch_failure_details),
+                                    use_container_width=True,
+                                    hide_index=True,
+                                )
 
                         if unmatched_keywords:
                             with st.expander(f"⚠️ {len(unmatched_keywords)} keywords had no GSC match"):
