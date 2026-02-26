@@ -114,8 +114,13 @@ def load_keywords_excel(file_obj):
 
         if filename.endswith('.csv'):
             file_obj.seek(0)
-            df = pd.read_csv(file_obj)
+            df = pd.read_csv(file_obj, sep=None, engine='python')
             keywords.extend(extract_keywords_from_dataframe(df))
+
+            if len(keywords) < 3:
+                file_obj.seek(0)
+                df_no_header = pd.read_csv(file_obj, sep=None, engine='python', header=None)
+                keywords.extend(extract_keywords_from_dataframe(df_no_header))
         else:
             file_obj.seek(0)
             xls = pd.ExcelFile(file_obj)
@@ -147,8 +152,11 @@ def parse_french_number(val):
     val = str(val).strip()
     # Remove spaces (French thousands separator)
     val = val.replace(' ', '')
+    val = val.replace('\u00a0', '')
+    val = val.replace('\u202f', '')
     # Replace comma with dot (French decimal)
     val = val.replace(',', '.')
+    val = val.replace('%', '')
     try:
         return float(val)
     except:
@@ -472,42 +480,63 @@ def main():
                         return
                     
                     # Analyze
-                    results = []
-                    unmatched_keywords = []
                     progress_bar = st.progress(0)
                     status_text = st.empty()
-                    
-                    for i, keyword in enumerate(keywords):
-                        status_text.text(f"Analyzing: {keyword} ({i+1}/{len(keywords)})")
+                    mode_attempts = [matching_mode]
+                    if matching_mode != "Wide":
+                        mode_attempts.append("Wide")
 
-                        url_info = get_best_url_for_keyword(
-                            prepared_gsc,
-                            keyword,
-                            query_col,
-                            page_col,
-                            matching_mode=matching_mode,
-                        )
-                        if not url_info:
-                            unmatched_keywords.append(keyword)
-                            continue
-                        
-                        page_data = fetch_page_content(url_info['url'])
-                        if not page_data:
-                            continue
-                        
-                        proximity = calculate_semantic_proximity(keyword, page_data, model)
-                        
-                        results.append({
-                            'Keyword': keyword,
-                            'Matched_Query': url_info['query'],
-                            'URL': url_info['url'],
-                            'Proximity_Score': proximity,
-                            'Clicks': int(url_info['clicks']),
-                            'Impressions': int(url_info['impressions']),
-                            'Position': round(url_info['position'], 1),
-                        })
-                        
-                        progress_bar.progress((i + 1) / len(keywords))
+                    results = []
+                    unmatched_keywords = []
+                    effective_mode = matching_mode
+
+                    for attempt_index, attempt_mode in enumerate(mode_attempts):
+                        if attempt_index > 0:
+                            st.warning(
+                                "No matches found with the selected mode. "
+                                "Retrying automatically with Wide mode..."
+                            )
+
+                        results = []
+                        unmatched_keywords = []
+
+                        for i, keyword in enumerate(keywords):
+                            status_text.text(
+                                f"Analyzing ({attempt_mode}): {keyword} ({i+1}/{len(keywords)})"
+                            )
+
+                            url_info = get_best_url_for_keyword(
+                                prepared_gsc,
+                                keyword,
+                                query_col,
+                                page_col,
+                                matching_mode=attempt_mode,
+                            )
+                            if not url_info:
+                                unmatched_keywords.append(keyword)
+                                continue
+
+                            page_data = fetch_page_content(url_info['url'])
+                            if not page_data:
+                                continue
+
+                            proximity = calculate_semantic_proximity(keyword, page_data, model)
+
+                            results.append({
+                                'Keyword': keyword,
+                                'Matched_Query': url_info['query'],
+                                'URL': url_info['url'],
+                                'Proximity_Score': proximity,
+                                'Clicks': int(url_info['clicks']),
+                                'Impressions': int(url_info['impressions']),
+                                'Position': round(url_info['position'], 1),
+                            })
+
+                            progress_bar.progress((i + 1) / len(keywords))
+
+                        if results:
+                            effective_mode = attempt_mode
+                            break
                     
                     progress_bar.empty()
                     status_text.empty()
@@ -516,7 +545,10 @@ def main():
                         result_df = pd.DataFrame(results)
                         st.session_state.results = result_df
                         st.session_state.charts = generate_charts(result_df)
-                        st.success(f"✅ Analyzed {len(results)} keywords (matched out of {len(keywords)})")
+                        st.success(
+                            f"✅ Analyzed {len(results)} keywords "
+                            f"(matched out of {len(keywords)}) using mode: {effective_mode}"
+                        )
 
                         if unmatched_keywords:
                             with st.expander(f"⚠️ {len(unmatched_keywords)} keywords had no GSC match"):
