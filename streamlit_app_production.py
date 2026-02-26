@@ -174,7 +174,7 @@ def prepare_gsc_data(gsc_df):
     return prepared, query_col, page_col
 
 
-def get_best_url_for_keyword(prepared_gsc_df, keyword, query_col, page_col):
+def get_best_url_for_keyword(prepared_gsc_df, keyword, query_col, page_col, matching_mode='Balanced'):
     keyword_norm = normalize_text(keyword)
     if not keyword_norm:
         return None
@@ -182,6 +182,14 @@ def get_best_url_for_keyword(prepared_gsc_df, keyword, query_col, page_col):
     keyword_tokens = [token for token in keyword_norm.split() if len(token) > 1]
     if not keyword_tokens:
         return None
+
+    mode = (matching_mode or 'Balanced').lower()
+    if mode == 'strict':
+        min_overlap = 0.75
+    elif mode == 'wide':
+        min_overlap = 0.30
+    else:
+        min_overlap = 0.45
 
     def keyword_match_score(query_norm):
         if not query_norm:
@@ -194,7 +202,7 @@ def get_best_url_for_keyword(prepared_gsc_df, keyword, query_col, page_col):
 
         overlap = sum(1 for token in keyword_tokens if token in query_norm)
         overlap_ratio = overlap / len(keyword_tokens)
-        if overlap_ratio >= 0.4:
+        if overlap_ratio >= min_overlap:
             return 0.5 + (overlap_ratio * 0.4)
 
         return 0.0
@@ -410,6 +418,17 @@ def main():
         st.subheader("2️⃣ Priority Keywords (Excel/CSV) ⭐")
         st.caption("Your strategic keywords list - the app will find best URLs for each and analyze semantic alignment")
         keywords_file = st.file_uploader("Upload Keywords File", type=['xlsx', 'xls', 'csv'], key='keywords', help="Excel or CSV file with your priority keywords in 'Mot-clé' or 'Keyword' column")
+
+    matching_mode = st.select_slider(
+        "🎯 Keyword Matching Sensitivity",
+        options=["Strict", "Balanced", "Wide"],
+        value="Balanced",
+        help=(
+            "Strict = very close query match only, "
+            "Balanced = recommended default, "
+            "Wide = broader match coverage"
+        )
+    )
     
     st.markdown("---")
     
@@ -441,7 +460,10 @@ def main():
                         if len(keywords) > 20:
                             st.write(f"... and {len(keywords) - 20} more")
                     
-                    st.info(f"🔍 Now matching {len(keywords)} keywords with GSC data and analyzing semantic proximity...")
+                    st.info(
+                        f"🔍 Now matching {len(keywords)} keywords with GSC data "
+                        f"(mode: {matching_mode}) and analyzing semantic proximity..."
+                    )
                     
                     # Load model
                     model = load_embedding_model()
@@ -458,7 +480,13 @@ def main():
                     for i, keyword in enumerate(keywords):
                         status_text.text(f"Analyzing: {keyword} ({i+1}/{len(keywords)})")
 
-                        url_info = get_best_url_for_keyword(prepared_gsc, keyword, query_col, page_col)
+                        url_info = get_best_url_for_keyword(
+                            prepared_gsc,
+                            keyword,
+                            query_col,
+                            page_col,
+                            matching_mode=matching_mode,
+                        )
                         if not url_info:
                             unmatched_keywords.append(keyword)
                             continue
