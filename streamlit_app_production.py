@@ -46,6 +46,43 @@ APP_I18N = {
         'opportunity_idx': 'Opportunity Index',
         'serp_position': 'SERP Position (lower is better)',
         'count': 'Count',
+        'gsc_caption': 'Export from Google Search Console with Query, Page, Clicks, Impressions, Position columns',
+        'keywords_caption': 'Your strategic keywords list - the app will find best URLs for each and analyze semantic alignment',
+        'matching_help': 'Strict = very close query match only, Balanced = recommended default, Wide = broader match coverage',
+        'analyzing_spinner': 'Analyzing... (this may take a minute)',
+        'missing_gsc_columns': 'Could not find required GSC columns (Query + Page)',
+        'detected_columns': 'Detected columns',
+        'cannot_extract_keywords': 'Could not extract keywords from file',
+        'keywords_column_hint': "Make sure your file has a column named 'Mot-clé', 'Keyword', or 'Keywords'",
+        'loaded_keywords': 'Loaded',
+        'priority_keywords_loaded_suffix': 'priority keywords from file',
+        'view_loaded_keywords': 'View loaded keywords',
+        'matching_info_prefix': 'Now matching',
+        'matching_info_suffix': 'keywords with GSC data and analyzing semantic proximity...',
+        'failed_load_model': 'Failed to load embedding model',
+        'retry_wide': 'No matches found with the selected mode. Retrying automatically with Wide mode...',
+        'analyzing_status': 'Analyzing',
+        'analyzed_success_prefix': 'Analyzed',
+        'analyzed_success_mid': 'keywords (matched out of',
+        'analyzed_success_suffix': ') using mode',
+        'fetch_warning_prefix': 'matched URLs could not be fetched live. Fallback semantic inputs were used (query + URL text).',
+        'fetch_details': 'Fetch failures details',
+        'no_gsc_match': 'keywords had no GSC match',
+        'no_matching_keywords': 'No matching keywords found in GSC data',
+        'matched_but_not_analyzable': 'Keywords matched in GSC, but no rows were analyzable after processing.',
+        'quick_diagnostic': 'Quick diagnostic',
+        'diag_loaded_keywords': 'Loaded strategic keywords',
+        'diag_gsc_rows': 'GSC rows available',
+        'diag_query_col': 'GSC query column used',
+        'diag_matched_before_fetch': 'Matched keywords before fetch',
+        'diag_fetch_failures': 'URL fetch failures',
+        'sample_gsc_queries': 'Sample GSC queries (first 20)',
+        'sample_strategic_keywords': 'Sample strategic keywords (first 20)',
+        'show_detailed_error': 'Show detailed error',
+        'both_files_required': 'Both files are required to run the analysis',
+        'missing_gsc_file': 'GSC Data CSV is missing',
+        'missing_keywords_file': 'Priority Keywords file is missing (Excel or CSV with your strategic keywords)',
+        'what_are_priority_keywords': 'What are Priority Keywords?',
     },
     'fr': {
         'lang_selector': 'Langue',
@@ -66,6 +103,43 @@ APP_I18N = {
         'opportunity_idx': "Indice d'opportunité",
         'serp_position': 'Position SERP (plus bas = meilleur)',
         'count': 'Volume',
+        'gsc_caption': 'Export Google Search Console avec colonnes Query, Page, Clicks, Impressions, Position',
+        'keywords_caption': 'Votre liste de mots-clés stratégiques – l’app trouve les meilleures URLs et analyse l’alignement sémantique',
+        'matching_help': 'Strict = correspondances très proches, Équilibré = recommandé, Large = couverture plus large',
+        'analyzing_spinner': 'Analyse en cours... (cela peut prendre une minute)',
+        'missing_gsc_columns': 'Colonnes GSC requises introuvables (Query + Page)',
+        'detected_columns': 'Colonnes détectées',
+        'cannot_extract_keywords': 'Impossible d’extraire les mots-clés du fichier',
+        'keywords_column_hint': "Vérifiez qu’une colonne existe avec 'Mot-clé', 'Keyword' ou 'Keywords'",
+        'loaded_keywords': 'Chargé',
+        'priority_keywords_loaded_suffix': 'mots-clés prioritaires depuis le fichier',
+        'view_loaded_keywords': 'Voir les mots-clés chargés',
+        'matching_info_prefix': 'Matching de',
+        'matching_info_suffix': 'mots-clés avec les données GSC et analyse de proximité sémantique...',
+        'failed_load_model': 'Échec du chargement du modèle d’embedding',
+        'retry_wide': 'Aucun match avec le mode sélectionné. Nouvelle tentative automatique en mode Large...',
+        'analyzing_status': 'Analyse',
+        'analyzed_success_prefix': 'Analysé',
+        'analyzed_success_mid': 'mots-clés (matchés sur',
+        'analyzed_success_suffix': ') avec le mode',
+        'fetch_warning_prefix': 'URLs matchées non récupérées en live. Fallback utilisé (query + texte URL).',
+        'fetch_details': 'Détails des échecs de fetch',
+        'no_gsc_match': 'mots-clés sans match GSC',
+        'no_matching_keywords': 'Aucun mot-clé correspondant trouvé dans les données GSC',
+        'matched_but_not_analyzable': 'Des mots-clés sont matchés dans GSC, mais aucune ligne n’est analysable après traitement.',
+        'quick_diagnostic': 'Diagnostic rapide',
+        'diag_loaded_keywords': 'Mots-clés stratégiques chargés',
+        'diag_gsc_rows': 'Lignes GSC disponibles',
+        'diag_query_col': 'Colonne query GSC utilisée',
+        'diag_matched_before_fetch': 'Mots-clés matchés avant fetch',
+        'diag_fetch_failures': 'Échecs de fetch URL',
+        'sample_gsc_queries': 'Exemples de requêtes GSC (20 premières)',
+        'sample_strategic_keywords': 'Exemples de mots-clés stratégiques (20 premiers)',
+        'show_detailed_error': 'Afficher l’erreur détaillée',
+        'both_files_required': 'Les deux fichiers sont requis pour lancer l’analyse',
+        'missing_gsc_file': 'Le fichier CSV GSC est manquant',
+        'missing_keywords_file': 'Le fichier de mots-clés prioritaires est manquant (Excel ou CSV)',
+        'what_are_priority_keywords': 'Que sont les mots-clés prioritaires ?',
     },
     'ar': {
         'lang_selector': 'اللغة',
@@ -86,6 +160,43 @@ APP_I18N = {
         'opportunity_idx': 'مؤشر الفرصة',
         'serp_position': 'ترتيب SERP (الأقل أفضل)',
         'count': 'العدد',
+        'gsc_caption': 'تصدير من Google Search Console مع الأعمدة Query وPage وClicks وImpressions وPosition',
+        'keywords_caption': 'قائمة كلماتك المفتاحية الاستراتيجية - الأداة تختار أفضل URL وتحلل المحاذاة الدلالية',
+        'matching_help': 'صارم = مطابقة دقيقة، متوازن = موصى به، واسع = تغطية أوسع',
+        'analyzing_spinner': 'جارٍ التحليل... (قد يستغرق ذلك دقيقة)',
+        'missing_gsc_columns': 'تعذر العثور على أعمدة GSC المطلوبة (Query + Page)',
+        'detected_columns': 'الأعمدة المكتشفة',
+        'cannot_extract_keywords': 'تعذر استخراج الكلمات المفتاحية من الملف',
+        'keywords_column_hint': "تأكد من وجود عمود باسم 'Mot-clé' أو 'Keyword' أو 'Keywords'",
+        'loaded_keywords': 'تم تحميل',
+        'priority_keywords_loaded_suffix': 'كلمة مفتاحية استراتيجية من الملف',
+        'view_loaded_keywords': 'عرض الكلمات المفتاحية المحمّلة',
+        'matching_info_prefix': 'جارٍ مطابقة',
+        'matching_info_suffix': 'كلمة مفتاحية مع بيانات GSC وتحليل التقارب الدلالي...',
+        'failed_load_model': 'فشل تحميل نموذج التضمين',
+        'retry_wide': 'لم يتم العثور على مطابقات بالوضع الحالي. إعادة المحاولة تلقائياً بوضع واسع...',
+        'analyzing_status': 'تحليل',
+        'analyzed_success_prefix': 'تم تحليل',
+        'analyzed_success_mid': 'كلمة مفتاحية (مطابقة من أصل',
+        'analyzed_success_suffix': ') باستخدام الوضع',
+        'fetch_warning_prefix': 'عنوان URL مطابق لم يتم جلبه مباشرة. تم استخدام fallback (query + نص URL).',
+        'fetch_details': 'تفاصيل فشل الجلب',
+        'no_gsc_match': 'كلمات مفتاحية بدون مطابقة في GSC',
+        'no_matching_keywords': 'لم يتم العثور على كلمات مفتاحية مطابقة في بيانات GSC',
+        'matched_but_not_analyzable': 'تمت مطابقة كلمات مفتاحية في GSC ولكن لا توجد صفوف قابلة للتحليل بعد المعالجة.',
+        'quick_diagnostic': 'تشخيص سريع',
+        'diag_loaded_keywords': 'الكلمات الاستراتيجية المحمّلة',
+        'diag_gsc_rows': 'صفوف GSC المتاحة',
+        'diag_query_col': 'عمود الاستعلام المستخدم من GSC',
+        'diag_matched_before_fetch': 'الكلمات المطابقة قبل الجلب',
+        'diag_fetch_failures': 'إخفاقات جلب URL',
+        'sample_gsc_queries': 'عينات استعلامات GSC (أول 20)',
+        'sample_strategic_keywords': 'عينات الكلمات الاستراتيجية (أول 20)',
+        'show_detailed_error': 'عرض الخطأ التفصيلي',
+        'both_files_required': 'الملفان مطلوبان لتشغيل التحليل',
+        'missing_gsc_file': 'ملف GSC CSV مفقود',
+        'missing_keywords_file': 'ملف الكلمات المفتاحية الاستراتيجية مفقود (Excel أو CSV)',
+        'what_are_priority_keywords': 'ما هي الكلمات المفتاحية الاستراتيجية؟',
     },
 }
 
@@ -562,23 +673,19 @@ def main():
     
     with col1:
         st.subheader(f"1️⃣ {t(language, 'gsc_label')}")
-        st.caption("Export from Google Search Console with Query, Page, Clicks, Impressions, Position columns")
+        st.caption(t(language, 'gsc_caption'))
         gsc_file = st.file_uploader(t(language, 'upload_gsc'), type=['csv'], key='gsc', help="Export your GSC data as CSV with queries and landing pages")
     
     with col2:
         st.subheader(f"2️⃣ {t(language, 'keywords_label')} ⭐")
-        st.caption("Your strategic keywords list - the app will find best URLs for each and analyze semantic alignment")
+        st.caption(t(language, 'keywords_caption'))
         keywords_file = st.file_uploader(t(language, 'upload_keywords'), type=['xlsx', 'xls', 'csv'], key='keywords', help="Excel or CSV file with your priority keywords in 'Mot-clé' or 'Keyword' column")
 
     matching_mode = st.select_slider(
         f"🎯 {t(language, 'matching_sensitivity')}",
         options=[t(language, 'strict'), t(language, 'balanced'), t(language, 'wide')],
         value=t(language, 'balanced'),
-        help=(
-            "Strict = very close query match only, "
-            "Balanced = recommended default, "
-            "Wide = broader match coverage"
-        )
+        help=t(language, 'matching_help')
     )
     
     st.markdown("---")
@@ -586,40 +693,40 @@ def main():
     # Analyze button
     if st.button(f"🚀 {t(language, 'analyze_btn')}", type="primary", use_container_width=True):
         if gsc_file and keywords_file:
-            with st.spinner("🔄 Analyzing... (this may take a minute)"):
+            with st.spinner(f"🔄 {t(language, 'analyzing_spinner')}"):
                 try:
                     # Load files
                     gsc_df = pd.read_csv(gsc_file, dtype={'Clicks': str, 'Impressions': str, 'Position': str})
 
                     prepared_gsc, query_col, page_col = prepare_gsc_data(gsc_df)
                     if prepared_gsc is None:
-                        st.error("❌ Could not find required GSC columns (Query + Page)")
-                        st.write(f"Detected columns: {', '.join(gsc_df.columns.astype(str).tolist())}")
+                        st.error(f"❌ {t(language, 'missing_gsc_columns')}")
+                        st.write(f"{t(language, 'detected_columns')}: {', '.join(gsc_df.columns.astype(str).tolist())}")
                         return
                     
                     # Load keywords from file (handles Excel and CSV)
                     keywords = load_keywords_excel(keywords_file)
                     
                     if not keywords:
-                        st.error("❌ Could not extract keywords from file")
-                        st.warning("Make sure your file has a column named 'Mot-clé', 'Keyword', or 'Keywords'")
+                        st.error(f"❌ {t(language, 'cannot_extract_keywords')}")
+                        st.warning(t(language, 'keywords_column_hint'))
                         return
                     
-                    st.success(f"✅ Loaded {len(keywords)} priority keywords from file")
-                    with st.expander("📋 View loaded keywords"):
+                    st.success(f"✅ {t(language, 'loaded_keywords')} {len(keywords)} {t(language, 'priority_keywords_loaded_suffix')}")
+                    with st.expander(f"📋 {t(language, 'view_loaded_keywords')}"):
                         st.write(", ".join(keywords[:20]))
                         if len(keywords) > 20:
                             st.write(f"... and {len(keywords) - 20} more")
                     
                     st.info(
-                        f"🔍 Now matching {len(keywords)} keywords with GSC data "
-                        f"(mode: {matching_mode}) and analyzing semantic proximity..."
+                        f"🔍 {t(language, 'matching_info_prefix')} {len(keywords)} "
+                        f"{t(language, 'matching_info_suffix')} (mode: {matching_mode})"
                     )
                     
                     # Load model
                     model = load_embedding_model()
                     if not model:
-                        st.error("❌ Failed to load embedding model")
+                        st.error(f"❌ {t(language, 'failed_load_model')}")
                         return
                     
                     # Analyze
@@ -644,10 +751,7 @@ def main():
 
                     for attempt_index, attempt_mode in enumerate(mode_attempts):
                         if attempt_index > 0:
-                            st.warning(
-                                "No matches found with the selected mode. "
-                                "Retrying automatically with Wide mode..."
-                            )
+                            st.warning(t(language, 'retry_wide'))
 
                         results = []
                         unmatched_keywords = []
@@ -657,7 +761,7 @@ def main():
 
                         for i, keyword in enumerate(keywords):
                             status_text.text(
-                                f"Analyzing ({attempt_mode}): {keyword} ({i+1}/{len(keywords)})"
+                                f"{t(language, 'analyzing_status')} ({attempt_mode}): {keyword} ({i+1}/{len(keywords)})"
                             )
 
                             url_info = get_best_url_for_keyword(
@@ -729,16 +833,16 @@ def main():
                         }
                         st.session_state.charts = generate_charts(result_df, labels=chart_labels)
                         st.success(
-                            f"✅ Analyzed {len(results)} keywords "
-                            f"(matched out of {len(keywords)}) using mode: {effective_mode}"
+                            f"✅ {t(language, 'analyzed_success_prefix')} {len(results)} "
+                            f"{t(language, 'analyzed_success_mid')} {len(keywords)}"
+                            f"{t(language, 'analyzed_success_suffix')}: {effective_mode}"
                         )
 
                         if fetch_failures > 0:
                             st.warning(
-                                f"⚠️ {fetch_failures} matched URLs could not be fetched live. "
-                                "Fallback semantic inputs were used (query + URL text)."
+                                f"⚠️ {fetch_failures} {t(language, 'fetch_warning_prefix')}"
                             )
-                            with st.expander("🔎 Fetch failures details"):
+                            with st.expander(f"🔎 {t(language, 'fetch_details')}"):
                                 st.dataframe(
                                     pd.DataFrame(fetch_failure_details),
                                     use_container_width=True,
@@ -746,44 +850,42 @@ def main():
                                 )
 
                         if unmatched_keywords:
-                            with st.expander(f"⚠️ {len(unmatched_keywords)} keywords had no GSC match"):
+                            with st.expander(f"⚠️ {len(unmatched_keywords)} {t(language, 'no_gsc_match')}"):
                                 st.write(", ".join(unmatched_keywords[:50]))
                                 if len(unmatched_keywords) > 50:
                                     st.write(f"... and {len(unmatched_keywords) - 50} more")
                     else:
                         if matched_keywords_count == 0:
-                            st.error("❌ No matching keywords found in GSC data")
+                            st.error(f"❌ {t(language, 'no_matching_keywords')}")
                         else:
-                            st.error(
-                                "❌ Keywords matched in GSC, but no rows were analyzable after processing."
-                            )
-                        st.info("🔎 Quick diagnostic")
-                        st.write(f"- Loaded strategic keywords: {len(keywords)}")
-                        st.write(f"- GSC rows available: {len(prepared_gsc)}")
-                        st.write(f"- GSC query column used: {query_col}")
-                        st.write(f"- Matched keywords before fetch: {matched_keywords_count}")
-                        st.write(f"- URL fetch failures: {fetch_failures}")
+                            st.error(f"❌ {t(language, 'matched_but_not_analyzable')}")
+                        st.info(f"🔎 {t(language, 'quick_diagnostic')}")
+                        st.write(f"- {t(language, 'diag_loaded_keywords')}: {len(keywords)}")
+                        st.write(f"- {t(language, 'diag_gsc_rows')}: {len(prepared_gsc)}")
+                        st.write(f"- {t(language, 'diag_query_col')}: {query_col}")
+                        st.write(f"- {t(language, 'diag_matched_before_fetch')}: {matched_keywords_count}")
+                        st.write(f"- {t(language, 'diag_fetch_failures')}: {fetch_failures}")
                         sample_queries = prepared_gsc[query_col].dropna().astype(str).head(20).tolist()
-                        with st.expander("Sample GSC queries (first 20)"):
+                        with st.expander(t(language, 'sample_gsc_queries')):
                             for query in sample_queries:
                                 st.write(f"- {query}")
-                        with st.expander("Sample strategic keywords (first 20)"):
+                        with st.expander(t(language, 'sample_strategic_keywords')):
                             for keyword in keywords[:20]:
                                 st.write(f"- {keyword}")
                 
                 except Exception as e:
                     st.error(f"❌ Error: {str(e)}")
                     import traceback
-                    with st.expander("Show detailed error"):
+                    with st.expander(t(language, 'show_detailed_error')):
                         st.code(traceback.format_exc())
         else:
-            st.error("⚠️ **Both files are required to run the analysis:**")
+            st.error(f"⚠️ **{t(language, 'both_files_required')}**")
             if not gsc_file:
-                st.write("- ❌ GSC Data CSV is missing")
+                st.write(f"- ❌ {t(language, 'missing_gsc_file')}")
             if not keywords_file:
-                st.write("- ❌ **Priority Keywords file is missing** (Excel or CSV with your strategic keywords)")
+                st.write(f"- ❌ **{t(language, 'missing_keywords_file')}**")
             
-            with st.expander("💡 What are Priority Keywords?"):
+            with st.expander(f"💡 {t(language, 'what_are_priority_keywords')}"):
                 st.markdown("""
                 **Priority Keywords** are your strategic target keywords - the ones you want to rank for.
                 
