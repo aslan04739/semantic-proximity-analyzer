@@ -21,6 +21,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
+import re
+import unicodedata
 
 # ============= PAGE CONFIG =============
 st.set_page_config(
@@ -56,46 +58,86 @@ def load_embedding_model():
         return None
 
 # ============= UTILITY FUNCTIONS =============
-def load_keywords_excel(file_path_or_df):
-    """Extract keywords from Excel/CSV file (handles multi-sheet structures)"""
+def normalize_text(text):
+    if pd.isna(text):
+        return ""
+    value = str(text).lower().strip()
+    value = unicodedata.normalize('NFKD', value)
+    value = ''.join(ch for ch in value if not unicodedata.combining(ch))
+    value = re.sub(r"[^a-z0-9\s]", " ", value)
+    value = re.sub(r"\s+", " ", value).strip()
+    return value
+
+
+def detect_column(columns, candidates):
+    normalized = {col: normalize_text(col) for col in columns}
+    for candidate in candidates:
+        candidate_norm = normalize_text(candidate)
+        for original, norm in normalized.items():
+            if norm == candidate_norm or candidate_norm in norm:
+                return original
+    return None
+
+
+def extract_keywords_from_dataframe(df):
+    if df is None or df.empty:
+        return []
+
+    keyword_col = detect_column(
+        df.columns,
+        ['mot cle', 'mot-clé', 'mot clé', 'keyword', 'keywords', 'query']
+    )
+
+    if keyword_col is None:
+        if len(df.columns) > 1:
+            keyword_col = df.columns[1]
+        else:
+            keyword_col = df.columns[0]
+
+    values = df[keyword_col].dropna().astype(str).tolist()
+    cleaned = []
+    for value in values:
+        text = value.strip()
+        if not text or len(text) < 2 or text.isdigit():
+            continue
+        normalized = normalize_text(text)
+        if normalized in {'mot cle', 'keyword', 'keywords', 'nan'}:
+            continue
+        cleaned.append(text)
+    return cleaned
+
+
+def load_keywords_excel(file_obj):
     keywords = []
     try:
-        # Handle file objects from st.file_uploader
-        if hasattr(file_path_or_df, 'name'):
-            xls = pd.ExcelFile(file_path_or_df)
-            sheets = xls.sheet_names
-            
-            for sheet_name in sheets:
-                # Read with skiprows to skip headers - "Mot-clé" header is at row 3
-                df = pd.read_excel(file_path_or_df, sheet_name=sheet_name, skiprows=3)
-                
-                # Find the keyword column (should contain "Mot" or similar)
-                keyword_col = None
-                for col in df.columns:
-                    if isinstance(col, str) and ('mot' in col.lower() or 'word' in col.lower()):
-                        keyword_col = col
-                        break
-                
-                # If not found, try second column (usually index 1)
-                if not keyword_col and len(df.columns) > 1:
-                    keyword_col = df.columns[1]
-                
-                if keyword_col:
-                    # Extract keywords, skip NaNs and metadata
-                    sheet_keywords = df[keyword_col].dropna().astype(str).tolist()
-                    keywords.extend([k.strip() for k in sheet_keywords 
-                                   if k.strip() and len(k.strip()) > 2 and not k.strip().isdigit()])
+        filename = (getattr(file_obj, 'name', '') or '').lower()
+
+        if filename.endswith('.csv'):
+            file_obj.seek(0)
+            df = pd.read_csv(file_obj)
+            keywords.extend(extract_keywords_from_dataframe(df))
+        else:
+            file_obj.seek(0)
+            xls = pd.ExcelFile(file_obj)
+            for sheet_name in xls.sheet_names:
+                file_obj.seek(0)
+                df = pd.read_excel(file_obj, sheet_name=sheet_name)
+                keywords.extend(extract_keywords_from_dataframe(df))
+
+                file_obj.seek(0)
+                df_skip = pd.read_excel(file_obj, sheet_name=sheet_name, skiprows=3)
+                keywords.extend(extract_keywords_from_dataframe(df_skip))
+
     except Exception as e:
-        st.warning(f"Could not parse Excel file: {e}")
-    
-    # Remove duplicates while preserving order
+        st.warning(f"Could not parse keywords file: {e}")
+
     seen = set()
     unique_keywords = []
-    for k in keywords:
-        if k not in seen:
-            seen.add(k)
-            unique_keywords.append(k)
-    
+    for item in keywords:
+        key = normalize_text(item)
+        if key and key not in seen:
+            seen.add(key)
+            unique_keywords.append(item.strip())
     return unique_keywords
 
 def parse_french_number(val):
@@ -112,70 +154,76 @@ def parse_french_number(val):
     except:
         return 0.0
 
-def get_best_url_for_keyword(gsc_df, keyword):
-    """Find best ranking URL for keyword in GSC data (with fuzzy matching)"""
-    from difflib import SequenceMatcher
-    
-    # Clean up data first
-    gsc_clean = gsc_df.copy()
+def prepare_gsc_data(gsc_df):
+    prepared = gsc_df.copy()
+
+    query_col = detect_column(prepared.columns, ['query', 'queries', 'top queries'])
+    page_col = detect_column(prepared.columns, ['page', 'landing page', 'url', 'top pages'])
+
+    if not query_col or not page_col:
+        return None, None, None
+
     for col in ['Clicks', 'Impressions', 'Position']:
-        if col in gsc_clean.columns:
-            gsc_clean[col] = gsc_clean[col].apply(parse_french_number)
-    
-    # Find query column
-    query_col = next((col for col in ['Query', 'Queries', 'Top queries', 'query'] 
-                     if col in gsc_clean.columns), None)
-    
-    if not query_col:
+        metric_col = detect_column(prepared.columns, [col])
+        if metric_col:
+            prepared[metric_col] = prepared[metric_col].apply(parse_french_number)
+
+    prepared['_query_norm'] = prepared[query_col].apply(normalize_text)
+    prepared = prepared[prepared['_query_norm'].str.len() > 0].copy()
+
+    return prepared, query_col, page_col
+
+
+def get_best_url_for_keyword(prepared_gsc_df, keyword, query_col, page_col):
+    keyword_norm = normalize_text(keyword)
+    if not keyword_norm:
         return None
-    
-    # Find matching queries using fuzzy matching
-    keyword_lower = keyword.lower().strip()
-    matching_rows = []
-    
-    for idx, row in gsc_clean.iterrows():
-        query_lower = str(row[query_col]).lower().strip()
-        
-        # Check if keyword is contained in query (flexible matching)
-        # Or if query contains most words from keyword
-        keyword_words = keyword_lower.split()
-        query_words = query_lower.split()
-        
-        # Count how many keyword words appear in query
-        word_match = sum(1 for word in keyword_words if word in query_lower)
-        word_match_ratio = word_match / len(keyword_words) if keyword_words else 0
-        
-        # Include if at least 50% of keyword words match or keyword is in query
-        if word_match_ratio >= 0.5 or keyword_lower in query_lower:
-            matching_rows.append(idx)
-    
-    if not matching_rows:
+
+    keyword_tokens = [token for token in keyword_norm.split() if len(token) > 1]
+    if not keyword_tokens:
         return None
-    
-    matching = gsc_clean.loc[matching_rows].copy()
-    
-    # Calculate performance score
-    matching['Score'] = (
-        matching.get('Clicks', 0) * 2 +
-        matching.get('Impressions', 0) * 0.5 -
-        matching.get('Position', 0) * 0.1
+
+    def keyword_match_score(query_norm):
+        if not query_norm:
+            return 0.0
+
+        if keyword_norm == query_norm:
+            return 1.0
+        if keyword_norm in query_norm:
+            return 0.95
+
+        overlap = sum(1 for token in keyword_tokens if token in query_norm)
+        overlap_ratio = overlap / len(keyword_tokens)
+        if overlap_ratio >= 0.4:
+            return 0.5 + (overlap_ratio * 0.4)
+
+        return 0.0
+
+    scored = prepared_gsc_df.copy()
+    scored['_match_score'] = scored['_query_norm'].apply(keyword_match_score)
+    matched = scored[scored['_match_score'] > 0].copy()
+
+    if matched.empty:
+        return None
+
+    clicks_col = detect_column(matched.columns, ['Clicks'])
+    impressions_col = detect_column(matched.columns, ['Impressions'])
+    position_col = detect_column(matched.columns, ['Position'])
+
+    matched['_perf_score'] = (
+        matched.get(clicks_col, 0) * 2
+        + matched.get(impressions_col, 0) * 0.5
+        - matched.get(position_col, 0) * 0.1
     )
-    
-    best_row = matching.loc[matching['Score'].idxmax()]
-    
-    # Find page column
-    page_col = next((col for col in ['Landing page', 'Page', 'Landing Page', 'URL', 'Top pages', 'page'] 
-                    if col in gsc_clean.columns), None)
-    
-    if not page_col:
-        return None
-    
-    url = str(best_row[page_col])
+    matched['_final_score'] = (matched['_match_score'] * 1000) + matched['_perf_score']
+    best_row = matched.loc[matched['_final_score'].idxmax()]
+
     return {
-        'url': url,
-        'clicks': int(best_row.get('Clicks', 0)),
-        'impressions': int(best_row.get('Impressions', 0)),
-        'position': float(best_row.get('Position', 0)),
+        'url': str(best_row[page_col]),
+        'query': str(best_row[query_col]),
+        'clicks': int(best_row.get(clicks_col, 0)) if clicks_col else 0,
+        'impressions': int(best_row.get(impressions_col, 0)) if impressions_col else 0,
+        'position': float(best_row.get(position_col, 0)) if position_col else 0.0,
     }
 
 def fetch_page_content(url):
@@ -372,6 +420,12 @@ def main():
                 try:
                     # Load files
                     gsc_df = pd.read_csv(gsc_file, dtype={'Clicks': str, 'Impressions': str, 'Position': str})
+
+                    prepared_gsc, query_col, page_col = prepare_gsc_data(gsc_df)
+                    if prepared_gsc is None:
+                        st.error("❌ Could not find required GSC columns (Query + Page)")
+                        st.write(f"Detected columns: {', '.join(gsc_df.columns.astype(str).tolist())}")
+                        return
                     
                     # Load keywords from file (handles Excel and CSV)
                     keywords = load_keywords_excel(keywords_file)
@@ -397,14 +451,16 @@ def main():
                     
                     # Analyze
                     results = []
+                    unmatched_keywords = []
                     progress_bar = st.progress(0)
                     status_text = st.empty()
                     
                     for i, keyword in enumerate(keywords):
                         status_text.text(f"Analyzing: {keyword} ({i+1}/{len(keywords)})")
-                        
-                        url_info = get_best_url_for_keyword(gsc_df, keyword)
+
+                        url_info = get_best_url_for_keyword(prepared_gsc, keyword, query_col, page_col)
                         if not url_info:
+                            unmatched_keywords.append(keyword)
                             continue
                         
                         page_data = fetch_page_content(url_info['url'])
@@ -415,6 +471,7 @@ def main():
                         
                         results.append({
                             'Keyword': keyword,
+                            'Matched_Query': url_info['query'],
                             'URL': url_info['url'],
                             'Proximity_Score': proximity,
                             'Clicks': int(url_info['clicks']),
@@ -431,9 +488,26 @@ def main():
                         result_df = pd.DataFrame(results)
                         st.session_state.results = result_df
                         st.session_state.charts = generate_charts(result_df)
-                        st.success(f"✅ Analyzed {len(results)} keywords!")
+                        st.success(f"✅ Analyzed {len(results)} keywords (matched out of {len(keywords)})")
+
+                        if unmatched_keywords:
+                            with st.expander(f"⚠️ {len(unmatched_keywords)} keywords had no GSC match"):
+                                st.write(", ".join(unmatched_keywords[:50]))
+                                if len(unmatched_keywords) > 50:
+                                    st.write(f"... and {len(unmatched_keywords) - 50} more")
                     else:
                         st.error("❌ No matching keywords found in GSC data")
+                        st.info("🔎 Quick diagnostic")
+                        st.write(f"- Loaded strategic keywords: {len(keywords)}")
+                        st.write(f"- GSC rows available: {len(prepared_gsc)}")
+                        st.write(f"- GSC query column used: {query_col}")
+                        sample_queries = prepared_gsc[query_col].dropna().astype(str).head(20).tolist()
+                        with st.expander("Sample GSC queries (first 20)"):
+                            for query in sample_queries:
+                                st.write(f"- {query}")
+                        with st.expander("Sample strategic keywords (first 20)"):
+                            for keyword in keywords[:20]:
+                                st.write(f"- {keyword}")
                 
                 except Exception as e:
                     st.error(f"❌ Error: {str(e)}")
