@@ -488,6 +488,8 @@ def main():
 
                     results = []
                     unmatched_keywords = []
+                    matched_keywords_count = 0
+                    fetch_failures = 0
                     effective_mode = matching_mode
 
                     for attempt_index, attempt_mode in enumerate(mode_attempts):
@@ -499,6 +501,8 @@ def main():
 
                         results = []
                         unmatched_keywords = []
+                        matched_keywords_count = 0
+                        fetch_failures = 0
 
                         for i, keyword in enumerate(keywords):
                             status_text.text(
@@ -516,9 +520,18 @@ def main():
                                 unmatched_keywords.append(keyword)
                                 continue
 
+                            matched_keywords_count += 1
+
                             page_data = fetch_page_content(url_info['url'])
                             if not page_data:
-                                continue
+                                fetch_failures += 1
+                                page_data = {
+                                    'title': url_info.get('query', ''),
+                                    'meta_description': '',
+                                    'content': url_info.get('query', ''),
+                                    'url_text': url_info.get('url', ''),
+                                    'full_url': url_info.get('url', ''),
+                                }
 
                             proximity = calculate_semantic_proximity(keyword, page_data, model)
 
@@ -550,17 +563,30 @@ def main():
                             f"(matched out of {len(keywords)}) using mode: {effective_mode}"
                         )
 
+                        if fetch_failures > 0:
+                            st.warning(
+                                f"⚠️ {fetch_failures} matched URLs could not be fetched live. "
+                                "Fallback semantic inputs were used (query + URL text)."
+                            )
+
                         if unmatched_keywords:
                             with st.expander(f"⚠️ {len(unmatched_keywords)} keywords had no GSC match"):
                                 st.write(", ".join(unmatched_keywords[:50]))
                                 if len(unmatched_keywords) > 50:
                                     st.write(f"... and {len(unmatched_keywords) - 50} more")
                     else:
-                        st.error("❌ No matching keywords found in GSC data")
+                        if matched_keywords_count == 0:
+                            st.error("❌ No matching keywords found in GSC data")
+                        else:
+                            st.error(
+                                "❌ Keywords matched in GSC, but no rows were analyzable after processing."
+                            )
                         st.info("🔎 Quick diagnostic")
                         st.write(f"- Loaded strategic keywords: {len(keywords)}")
                         st.write(f"- GSC rows available: {len(prepared_gsc)}")
                         st.write(f"- GSC query column used: {query_col}")
+                        st.write(f"- Matched keywords before fetch: {matched_keywords_count}")
+                        st.write(f"- URL fetch failures: {fetch_failures}")
                         sample_queries = prepared_gsc[query_col].dropna().astype(str).head(20).tolist()
                         with st.expander("Sample GSC queries (first 20)"):
                             for query in sample_queries:
