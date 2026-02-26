@@ -23,6 +23,77 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import re
 import unicodedata
+from translations import get_text
+
+
+APP_I18N = {
+    'en': {
+        'lang_selector': 'Language',
+        'how_it_works': 'How it works',
+        'required_files_info': 'Required Files: Upload both your GSC export CSV and your strategic priority keywords file (Excel or CSV)',
+        'upload_gsc': 'Upload GSC CSV',
+        'upload_keywords': 'Upload Keywords File',
+        'matching_sensitivity': 'Keyword Matching Sensitivity',
+        'strict': 'Strict',
+        'balanced': 'Balanced',
+        'wide': 'Wide',
+        'visualizations': 'Visualizations',
+        'client_graphs': 'Client Insights Graphs',
+        'technical_graphs': 'Technical Graphs',
+        'graph_opportunity': 'Top SEO Opportunities',
+        'graph_position': 'Position vs Semantic Score',
+        'graph_bucket': 'Semantic Quality Mix',
+        'opportunity_idx': 'Opportunity Index',
+        'serp_position': 'SERP Position (lower is better)',
+        'count': 'Count',
+    },
+    'fr': {
+        'lang_selector': 'Langue',
+        'how_it_works': 'Comment ça marche',
+        'required_files_info': 'Fichiers requis : importez votre export GSC CSV et votre fichier de mots-clés stratégiques (Excel ou CSV)',
+        'upload_gsc': 'Importer le CSV GSC',
+        'upload_keywords': 'Importer le fichier de mots-clés',
+        'matching_sensitivity': 'Sensibilité du matching des mots-clés',
+        'strict': 'Strict',
+        'balanced': 'Équilibré',
+        'wide': 'Large',
+        'visualizations': 'Visualisations',
+        'client_graphs': 'Graphes orientés client',
+        'technical_graphs': 'Graphes techniques',
+        'graph_opportunity': 'Top opportunités SEO',
+        'graph_position': 'Position vs Score sémantique',
+        'graph_bucket': 'Répartition qualité sémantique',
+        'opportunity_idx': "Indice d'opportunité",
+        'serp_position': 'Position SERP (plus bas = meilleur)',
+        'count': 'Volume',
+    },
+    'ar': {
+        'lang_selector': 'اللغة',
+        'how_it_works': 'كيف تعمل الأداة',
+        'required_files_info': 'الملفات المطلوبة: ارفع ملف GSC CSV وملف الكلمات المفتاحية الاستراتيجية (Excel أو CSV)',
+        'upload_gsc': 'رفع ملف GSC CSV',
+        'upload_keywords': 'رفع ملف الكلمات المفتاحية',
+        'matching_sensitivity': 'حساسية مطابقة الكلمات المفتاحية',
+        'strict': 'صارم',
+        'balanced': 'متوازن',
+        'wide': 'واسع',
+        'visualizations': 'الرسوم البيانية',
+        'client_graphs': 'رسوم موجهة للعميل',
+        'technical_graphs': 'رسوم تقنية',
+        'graph_opportunity': 'أفضل فرص SEO',
+        'graph_position': 'الترتيب مقابل الدرجة الدلالية',
+        'graph_bucket': 'توزيع الجودة الدلالية',
+        'opportunity_idx': 'مؤشر الفرصة',
+        'serp_position': 'ترتيب SERP (الأقل أفضل)',
+        'count': 'العدد',
+    },
+}
+
+
+def t(language, key):
+    if key in APP_I18N.get(language, {}):
+        return APP_I18N[language][key]
+    return get_text(language, key)
 
 # ============= PAGE CONFIG =============
 st.set_page_config(
@@ -307,9 +378,10 @@ def calculate_semantic_proximity(keyword, page_data, model):
     except:
         return 0
 
-def generate_charts(result_df):
+def generate_charts(result_df, labels=None):
     """Generate modern charts without text overlap"""
     charts = {}
+    labels = labels or {}
     
     if result_df.empty:
         return charts
@@ -340,8 +412,8 @@ def generate_charts(result_df):
     fig, ax = plt.subplots(figsize=(11, 4), constrained_layout=True)
     colors = ['#10b981', '#84cc16', '#f59e0b', '#ef4444']
     bars = ax.barh(list(quality_data.keys()), list(quality_data.values()), color=colors)
-    ax.set_title('Keyword Quality Distribution')
-    ax.set_xlabel('Count')
+    ax.set_title(labels.get('graph_quality', 'Keyword Quality Distribution'))
+    ax.set_xlabel(labels.get('count', 'Count'))
     ax.grid(axis='x')
     ax.invert_yaxis()
     for i, bar in enumerate(bars):
@@ -354,9 +426,9 @@ def generate_charts(result_df):
     # 2) Score Distribution
     fig, ax = plt.subplots(figsize=(10.5, 5), constrained_layout=True)
     ax.hist(result_df['Proximity_Score'], bins=20, color='#1d4ed8', edgecolor='white', alpha=0.9)
-    ax.set_title('Score Distribution')
-    ax.set_xlabel('Semantic Proximity Score')
-    ax.set_ylabel('Keyword Count')
+    ax.set_title(labels.get('graph_distribution', 'Score Distribution'))
+    ax.set_xlabel(labels.get('col_score', 'Semantic Proximity Score'))
+    ax.set_ylabel(labels.get('count', 'Keyword Count'))
     ax.grid(axis='y')
     charts['distribution'] = fig
     
@@ -365,23 +437,93 @@ def generate_charts(result_df):
         fig, ax = plt.subplots(figsize=(10.5, 5.5), constrained_layout=True)
         scatter = ax.scatter(result_df['Proximity_Score'], result_df['Clicks'],
                            s=80, c=result_df['Proximity_Score'], cmap='viridis', alpha=0.7, edgecolors='white')
-        ax.set_title('Clicks vs Semantic Score')
-        ax.set_xlabel('Semantic Proximity Score')
-        ax.set_ylabel('Clicks')
+        ax.set_title(labels.get('graph_clicks_vs_score', 'Clicks vs Semantic Score'))
+        ax.set_xlabel(labels.get('col_score', 'Semantic Proximity Score'))
+        ax.set_ylabel(labels.get('col_clicks', 'Clicks'))
         ax.grid()
         cbar = plt.colorbar(scatter, ax=ax)
-        cbar.set_label('Score')
+        cbar.set_label(labels.get('col_score', 'Score'))
         charts['clicks'] = fig
+
+    if 'Position' in result_df.columns:
+        fig, ax = plt.subplots(figsize=(10.5, 5.5), constrained_layout=True)
+        scatter = ax.scatter(
+            result_df['Proximity_Score'],
+            result_df['Position'],
+            s=75,
+            c=result_df['Proximity_Score'],
+            cmap='plasma',
+            alpha=0.7,
+            edgecolors='white'
+        )
+        ax.set_title(labels.get('graph_position', 'Position vs Semantic Score'))
+        ax.set_xlabel(labels.get('col_score', 'Semantic Proximity Score'))
+        ax.set_ylabel(labels.get('serp_position', 'SERP Position (lower is better)'))
+        ax.invert_yaxis()
+        ax.grid()
+        cbar = plt.colorbar(scatter, ax=ax)
+        cbar.set_label(labels.get('col_score', 'Score'))
+        charts['position'] = fig
+
+    if 'Impressions' in result_df.columns:
+        opp_df = result_df.copy()
+        max_impr = max(opp_df['Impressions'].max(), 1)
+        opp_df['Opportunity_Index'] = (100 - opp_df['Proximity_Score']) * np.log1p(opp_df['Impressions']) / np.log1p(max_impr)
+        opp_df = opp_df[opp_df['Impressions'] > 0].nlargest(10, 'Opportunity_Index').sort_values('Opportunity_Index')
+        if not opp_df.empty:
+            fig, ax = plt.subplots(figsize=(10.8, 6.0), constrained_layout=True)
+            y_pos = np.arange(len(opp_df))
+            ax.hlines(y=y_pos, xmin=0, xmax=opp_df['Opportunity_Index'], color='#93c5fd', linewidth=2)
+            ax.scatter(opp_df['Opportunity_Index'], y_pos, color='#1d4ed8', s=85, zorder=3)
+            ax.set_yticks(y_pos)
+            ax.set_yticklabels(opp_df['Keyword'].astype(str).str.slice(0, 36), fontsize=9)
+            ax.set_xlabel(labels.get('opportunity_idx', 'Opportunity Index'))
+            ax.set_title(labels.get('graph_opportunity', 'Top SEO Opportunities'))
+            ax.grid(axis='x')
+            charts['opportunity'] = fig
+
+    fig, ax = plt.subplots(figsize=(8.0, 5.2), constrained_layout=True)
+    ax.pie(
+        [excellent, good, fair, poor],
+        labels=['80+', '60-79', '40-59', '<40'],
+        autopct='%1.0f%%',
+        colors=['#10b981', '#84cc16', '#f59e0b', '#ef4444'],
+        startangle=90
+    )
+    ax.set_title(labels.get('graph_bucket', 'Semantic Quality Mix'))
+    charts['bucket'] = fig
     
     return charts
 
 # ============= MAIN APP =============
 def main():
-    st.title("📊 Semantic Proximity Analyzer")
-    st.markdown("*Analyze keyword-to-page semantic alignment using AI embeddings*")
+    lang_options = {
+        'Français': 'fr',
+        'English': 'en',
+        'العربية': 'ar',
+    }
+    selected_lang_label = st.selectbox(
+        "Language / Langue / اللغة",
+        list(lang_options.keys()),
+        index=0,
+    )
+    language = lang_options[selected_lang_label]
+
+    if language == 'ar':
+        st.markdown(
+            """
+            <style>
+            .stApp { direction: rtl; }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.title(f"📊 {t(language, 'title')}")
+    st.markdown(f"*{t(language, 'subtitle')}*")
     
     # Overview
-    with st.expander("ℹ️ How it works", expanded=False):
+    with st.expander(f"ℹ️ {t(language, 'how_it_works')}", expanded=False):
         st.markdown("""
         ### What This Tool Does
         
@@ -413,25 +555,25 @@ def main():
         st.session_state.charts = {}
     
     # Instructions
-    st.info("📋 **Required Files:** Upload both your GSC export CSV and your strategic priority keywords file (Excel or CSV)")
+    st.info(f"📋 **{t(language, 'required_files_info')}**")
     
     # File uploads
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("1️⃣ GSC Data (CSV)")
+        st.subheader(f"1️⃣ {t(language, 'gsc_label')}")
         st.caption("Export from Google Search Console with Query, Page, Clicks, Impressions, Position columns")
-        gsc_file = st.file_uploader("Upload GSC CSV", type=['csv'], key='gsc', help="Export your GSC data as CSV with queries and landing pages")
+        gsc_file = st.file_uploader(t(language, 'upload_gsc'), type=['csv'], key='gsc', help="Export your GSC data as CSV with queries and landing pages")
     
     with col2:
-        st.subheader("2️⃣ Priority Keywords (Excel/CSV) ⭐")
+        st.subheader(f"2️⃣ {t(language, 'keywords_label')} ⭐")
         st.caption("Your strategic keywords list - the app will find best URLs for each and analyze semantic alignment")
-        keywords_file = st.file_uploader("Upload Keywords File", type=['xlsx', 'xls', 'csv'], key='keywords', help="Excel or CSV file with your priority keywords in 'Mot-clé' or 'Keyword' column")
+        keywords_file = st.file_uploader(t(language, 'upload_keywords'), type=['xlsx', 'xls', 'csv'], key='keywords', help="Excel or CSV file with your priority keywords in 'Mot-clé' or 'Keyword' column")
 
     matching_mode = st.select_slider(
-        "🎯 Keyword Matching Sensitivity",
-        options=["Strict", "Balanced", "Wide"],
-        value="Balanced",
+        f"🎯 {t(language, 'matching_sensitivity')}",
+        options=[t(language, 'strict'), t(language, 'balanced'), t(language, 'wide')],
+        value=t(language, 'balanced'),
         help=(
             "Strict = very close query match only, "
             "Balanced = recommended default, "
@@ -442,7 +584,7 @@ def main():
     st.markdown("---")
     
     # Analyze button
-    if st.button("🚀 Analyze Semantic Proximity", type="primary", use_container_width=True):
+    if st.button(f"🚀 {t(language, 'analyze_btn')}", type="primary", use_container_width=True):
         if gsc_file and keywords_file:
             with st.spinner("🔄 Analyzing... (this may take a minute)"):
                 try:
@@ -483,16 +625,22 @@ def main():
                     # Analyze
                     progress_bar = st.progress(0)
                     status_text = st.empty()
-                    mode_attempts = [matching_mode]
-                    if matching_mode != "Wide":
-                        mode_attempts.append("Wide")
+                    reverse_mode = {
+                        t(language, 'strict'): 'Strict',
+                        t(language, 'balanced'): 'Balanced',
+                        t(language, 'wide'): 'Wide',
+                    }
+                    selected_mode_en = reverse_mode.get(matching_mode, 'Balanced')
+                    mode_attempts = [selected_mode_en]
+                    if selected_mode_en != 'Wide':
+                        mode_attempts.append('Wide')
 
                     results = []
                     unmatched_keywords = []
                     matched_keywords_count = 0
                     fetch_failures = 0
                     fetch_failure_details = []
-                    effective_mode = matching_mode
+                    effective_mode = selected_mode_en
 
                     for attempt_index, attempt_mode in enumerate(mode_attempts):
                         if attempt_index > 0:
@@ -566,7 +714,20 @@ def main():
                     if results:
                         result_df = pd.DataFrame(results)
                         st.session_state.results = result_df
-                        st.session_state.charts = generate_charts(result_df)
+                        chart_labels = {
+                            'graph_quality': t(language, 'graph_quality'),
+                            'graph_distribution': t(language, 'graph_distribution'),
+                            'graph_clicks_vs_score': t(language, 'graph_clicks_vs_score'),
+                            'graph_position': t(language, 'graph_position'),
+                            'graph_opportunity': t(language, 'graph_opportunity'),
+                            'graph_bucket': t(language, 'graph_bucket'),
+                            'col_score': t(language, 'col_score'),
+                            'col_clicks': t(language, 'col_clicks'),
+                            'count': t(language, 'count'),
+                            'opportunity_idx': t(language, 'opportunity_idx'),
+                            'serp_position': t(language, 'serp_position'),
+                        }
+                        st.session_state.charts = generate_charts(result_df, labels=chart_labels)
                         st.success(
                             f"✅ Analyzed {len(results)} keywords "
                             f"(matched out of {len(keywords)}) using mode: {effective_mode}"
@@ -653,41 +814,52 @@ def main():
     if st.session_state.results is not None:
         result_df = st.session_state.results
         
-        st.subheader("📈 Analysis Results")
+        st.subheader(f"📈 {t(language, 'results_title')}")
         
         # Metrics
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Average Score", f"{result_df['Proximity_Score'].mean():.1f}")
+            st.metric(t(language, 'avg_score'), f"{result_df['Proximity_Score'].mean():.1f}")
         with col2:
-            st.metric("Keywords Analyzed", len(result_df))
+            st.metric(t(language, 'keywords_analyzed'), len(result_df))
         with col3:
-            st.metric("Avg Clicks", f"{result_df['Clicks'].mean():.1f}")
+            st.metric(t(language, 'avg_clicks'), f"{result_df['Clicks'].mean():.1f}")
         with col4:
-            st.metric("Avg Impressions", f"{result_df['Impressions'].mean():.1f}")
+            st.metric(t(language, 'avg_impressions'), f"{result_df['Impressions'].mean():.1f}")
         
         st.markdown("---")
         
         # Charts
-        st.subheader("📊 Visualizations")
+        st.subheader(f"📊 {t(language, 'visualizations')}")
         
+        st.markdown(f"**{t(language, 'client_graphs')}**")
         col1, col2 = st.columns(2)
         with col1:
             if 'quality' in st.session_state.charts:
                 st.pyplot(st.session_state.charts['quality'], use_container_width=True)
+            if 'opportunity' in st.session_state.charts:
+                st.pyplot(st.session_state.charts['opportunity'], use_container_width=True)
         with col2:
+            if 'bucket' in st.session_state.charts:
+                st.pyplot(st.session_state.charts['bucket'], use_container_width=True)
             if 'distribution' in st.session_state.charts:
                 st.pyplot(st.session_state.charts['distribution'], use_container_width=True)
-        
-        if 'clicks' in st.session_state.charts:
-            st.pyplot(st.session_state.charts['clicks'], use_container_width=True)
+
+        st.markdown(f"**{t(language, 'technical_graphs')}**")
+        col3, col4 = st.columns(2)
+        with col3:
+            if 'clicks' in st.session_state.charts:
+                st.pyplot(st.session_state.charts['clicks'], use_container_width=True)
+        with col4:
+            if 'position' in st.session_state.charts:
+                st.pyplot(st.session_state.charts['position'], use_container_width=True)
         
         st.markdown("---")
         
         # Tables
-        st.subheader("🎯 Top & Bottom Keywords")
+        st.subheader(f"🎯 {t(language, 'detailed_results')}")
         
-        tab1, tab2 = st.tabs(["Top 20 (Best Aligned)", "Bottom 20 (Needs Work)"])
+        tab1, tab2 = st.tabs([t(language, 'top_keywords'), t(language, 'bottom_keywords')])
         
         with tab1:
             top_20 = result_df.nlargest(20, 'Proximity_Score')
@@ -700,14 +872,14 @@ def main():
         st.markdown("---")
         
         # Download
-        st.subheader("⬇️ Export Results")
+        st.subheader(f"⬇️ {t(language, 'export_data')}")
         
         col1, col2 = st.columns(2)
         
         with col1:
             csv = result_df.to_csv(index=False)
             st.download_button(
-                label="📄 Download CSV",
+                label=t(language, 'download_csv'),
                 data=csv,
                 file_name=f"semantic_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
@@ -735,7 +907,7 @@ def main():
             
             with open('temp.xlsx', 'rb') as f:
                 st.download_button(
-                    label="📊 Download Excel",
+                    label=t(language, 'download_excel'),
                     data=f.read(),
                     file_name=f"semantic_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                     mime="application/vnd.ms-excel",
